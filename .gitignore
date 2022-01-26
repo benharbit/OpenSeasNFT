@@ -1,5 +1,5 @@
 .env
-/modules
+modules/
 *.log
 
 
