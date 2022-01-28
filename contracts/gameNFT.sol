@@ -14,7 +14,11 @@ contract GameItems is ERC1155,  Ownable {
    uint256 constant MAX_TOKEN_PURCHASE = 2;
    bool saleIsActive  = true;
    uint256 tokensMinted = 0;
-  
+   bool public isAllowListActive = false;
+   mapping(address => uint8) private _allowList;
+   bool public revealed = false;
+   string public notRevealedUri;
+
     constructor() ERC1155("https://bafybeif3emwbifvkbx3moxu2er6pwsgxovjh2ihlp226pazei4hjphz5uu.ipfs.dweb.link/") {
      //   _mint(msg.sender, COPPER, 10**18, "");
      //   _mint(msg.sender, CRYSTAL, 10**27, "");
@@ -22,6 +26,10 @@ contract GameItems is ERC1155,  Ownable {
     }
 
     function uri(uint256 _tokenId) override public view returns (string memory){
+
+        if(revealed == false) {
+            return notRevealedUri;
+        }
         return string(
             abi.encodePacked(
                 "https://bafybeif3emwbifvkbx3moxu2er6pwsgxovjh2ihlp226pazei4hjphz5uu.ipfs.dweb.link/",
@@ -64,6 +72,33 @@ contract GameItems is ERC1155,  Ownable {
         }
     }
 
+    function setAllowList(address[] calldata addresses, uint8 numAllowedToMint) external onlyOwner {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            _allowList[addresses[i]] = numAllowedToMint;
+        }
+    }
 
+    function mintAllowList(uint8 numberOfTokens) external payable {
+        uint256 ts = tokensMinted;
 
+        require(isAllowListActive, "Allow list is not active");
+        require(numberOfTokens <= _allowList[msg.sender], "Exceeded max available to purchase");
+        require(ts + numberOfTokens <= MAX_SUPPLY, "Purchase would exceed max tokens");
+        require(tokenPrice * numberOfTokens <= msg.value, "Ether value sent is not correct");
+
+        _allowList[msg.sender] -= numberOfTokens;
+        for (uint256 i = 0; i < numberOfTokens; i++) {
+            _mint(msg.sender, ts + i,1,"");
+        }
+    }
+   
+    function setNotRevealedURI(string memory _notRevealedURI) public onlyOwner {
+        notRevealedUri = _notRevealedURI;
+    }
+
+    function reveal() public onlyOwner {
+      revealed = true;
+    }
 }
+
+
